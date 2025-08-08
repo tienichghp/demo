@@ -54,10 +54,10 @@ jobs:
         run: |
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-      - name: Upgrade pip and install buildozer
+      - name: Upgrade pip and install buildozer and dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          pip install buildozer
+          pip install cython buildozer
 
       - name: Build APK
         run: buildozer android debug
@@ -66,4 +66,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: bin/*.apk
+          path: ./.buildozer/android/platform/build/dists/**/bin/*.apk
