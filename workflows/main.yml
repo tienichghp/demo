@@ -1,4 +1,4 @@
-name: Build Kivy APK
+name: Build Kivy APK (Updated 2025)
 
 on:
   push:
@@ -20,46 +20,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
+      - name: Setup Python 3.12
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies and system packages
+      - name: Install essential system packages
         run: |
-          sudo apt update
-          sudo apt install -y \
-            openjdk-11-jdk git zip unzip python3-pip \
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            openjdk-11-jdk-headless git zip unzip python3-pip \
             libncurses6 libncurses-dev libffi-dev libssl-dev libsqlite3-dev build-essential \
             liblzma-dev libbz2-dev libreadline-dev xz-utils tk-dev \
             libxml2-dev libxmlsec1-dev libjpeg-dev zlib1g-dev \
             autoconf automake libtool pkg-config curl
 
-      - name: Install Android SDK command line tools
+      - name: Download and install Android SDK Command-line tools
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip commandlinetools.zip
-          rm commandlinetools.zip
-          mv cmdline-tools latest
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          rm cmdline-tools.zip
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
 
-      - name: Set PATH environment variable
+      - name: Update PATH environment variable
         run: echo "PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Accept Android SDK licenses
+      - name: Accept all Android SDK licenses
         run: yes | sdkmanager --licenses
 
-      - name: Install Android SDK packages
+      - name: Install required Android SDK packages
         run: |
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-      - name: Upgrade pip and install Buildozer
+      - name: Upgrade pip and install Buildozer latest
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          pip install buildozer
+          pip install --upgrade buildozer
 
-      - name: Build APK with Buildozer
+      - name: Build APK using Buildozer
         run: buildozer android debug
 
       - name: Upload APK artifact
