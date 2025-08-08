@@ -2,11 +2,9 @@ name: Build Kivy APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build_apk:
@@ -22,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Cache pip packages
+      - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -30,16 +28,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Set up Python 3.11
+      - name: Setup Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            openjdk-11-jdk git zip unzip python3-pip \
+          sudo apt-get install -y openjdk-11-jdk git zip unzip python3-pip \
             libncurses6 libncurses-dev libffi-dev libssl-dev libsqlite3-dev build-essential \
             liblzma-dev libbz2-dev libreadline-dev xz-utils tk-dev \
             libxml2-dev libxmlsec1-dev libjpeg-dev zlib1g-dev \
@@ -54,25 +51,25 @@ jobs:
           rm commandlinetools.zip
           mv cmdline-tools latest
 
-      - name: Set PATH env variable for Android SDK
+      - name: Set Android SDK path
         run: echo "PATH=${ANDROIDSDK_ROOT}/cmdline-tools/latest/bin:${ANDROIDSDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Accept Android SDK licenses
+      - name: Accept SDK licenses
         run: yes | sdkmanager --licenses
 
       - name: Install Android SDK packages
         run: |
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-      - name: Upgrade pip and install Buildozer & Cython
+      - name: Upgrade pip and install buildozer & cython
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython
 
-      - name: Clean previous builds (optional)
+      - name: Clean previous builds
         run: buildozer android clean || true
 
-      - name: Build APK (debug)
+      - name: Build APK debug
         run: buildozer android debug --verbose
 
       - name: Upload APK artifact
