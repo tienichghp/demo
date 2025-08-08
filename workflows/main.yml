@@ -1,45 +1,79 @@
-name: Android CI
+name: Build Kivy APK
+
 on:
- push:
- branches:
- - main
- pull_request:
- branches:
- - main
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 jobs:
- build:
- name: Build Android App
- runs-on: ubuntu-latest
-steps:
- # Checkout the code
- - name: Checkout code
- uses: actions/checkout@v3
-# Set up Node.js environment
- - name: Set up Node.js
- uses: actions/setup-node@v3
- with:
- node-version: '18'
-# Install dependencies
- - name: Install dependencies
- run: npm install
-# Set up JDK for Android build
- - name: Set up JDK 11
- uses: actions/setup-java@v3
- with:
- distribution: 'adopt'
- java-version: '11'
-# Set up Android SDK
- - name: Install Android SDK
- uses: android-actions/setup-android@v2
- with:
- api-level: 30
- build-tools-version: 30.0.3
-# Build the Android app
- - name: Build Android App
- run: ./gradlew assembleRelease
-# Optional: Upload APK as an artifact
- - name: Upload APK
- uses: actions/upload-artifact@v3
- with:
- name: app-release.apk
- path: android/app/build/outputs/apk/release/app-release.apk
+  build_apk:
+    runs-on: ubuntu-22.04
+
+    env:
+      ANDROIDSDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
+      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:${{ env.PATH }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-11-jdk git zip unzip python3-pip \
+            libncurses6 libncurses-dev libffi-dev libssl-dev libsqlite3-dev build-essential \
+            liblzma-dev libbz2-dev libreadline-dev xz-utils tk-dev \
+            libxml2-dev libxmlsec1-dev libjpeg-dev zlib1g-dev \
+            autoconf automake libtool pkg-config curl
+
+      - name: Install Android SDK Command line tools
+        run: |
+          mkdir -p $ANDROIDSDK_ROOT/cmdline-tools
+          cd $ANDROIDSDK_ROOT/cmdline-tools
+          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip -q commandlinetools.zip
+          rm commandlinetools.zip
+          mv cmdline-tools latest
+
+      - name: Set Android SDK path
+        run: echo "PATH=${ANDROIDSDK_ROOT}/cmdline-tools/latest/bin:${ANDROIDSDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+      - name: Upgrade pip and install buildozer & cython
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          pip install buildozer cython
+
+      - name: Clean previous builds
+        run: buildozer android clean || true
+
+      - name: Build APK debug
+        run: buildozer android debug --verbose
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-debug
+          path: bin/*.apk
