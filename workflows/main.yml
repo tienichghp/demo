@@ -78,7 +78,8 @@ jobs:
         run: buildozer android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-debug
-          path: bin/*.apk
+  uses: actions/upload-artifact@v4
+  with:
+    name: apk-debug
+    path: bin/*.apk
+
