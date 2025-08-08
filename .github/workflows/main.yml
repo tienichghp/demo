@@ -25,15 +25,17 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install system packages
+      - name: Install system packages (including git)
         run: |
           sudo apt update
-          sudo apt install -y \
-            openjdk-11-jdk git zip unzip python3-pip \
+          sudo apt install -y openjdk-11-jdk git zip unzip python3-pip \
             libncurses6 libncurses-dev libffi-dev libssl-dev libsqlite3-dev build-essential \
             liblzma-dev libbz2-dev libreadline-dev xz-utils tk-dev \
             libxml2-dev libxmlsec1-dev libjpeg-dev zlib1g-dev \
             autoconf automake libtool pkg-config curl
+
+      - name: Verify git installation
+        run: git --version
 
       - name: Install Android SDK Command line tools
         run: |
