@@ -20,22 +20,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v3
 
       - name: Cache pip packages
-        uses: actions/cache@v5
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install system packages
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -54,17 +54,17 @@ jobs:
           rm commandlinetools.zip
           mv cmdline-tools latest
 
-      - name: Set PATH env variable
+      - name: Set PATH env variable for Android SDK
         run: echo "PATH=${ANDROIDSDK_ROOT}/cmdline-tools/latest/bin:${ANDROIDSDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Accept SDK licenses
+      - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
 
       - name: Install Android SDK packages
         run: |
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-      - name: Upgrade pip and install buildozer & cython
+      - name: Upgrade pip and install Buildozer & Cython
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython
@@ -75,5 +75,8 @@ jobs:
       - name: Build APK (debug)
         run: buildozer android debug --verbose
 
-      # Upload artifact đã bị tắt, không có phần upload ở đây
-
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-debug
+          path: bin/*.apk
