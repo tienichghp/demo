@@ -1,33 +1,47 @@
-steps:
-  # 1. Checkout code
-  - name: Checkout code
-    uses: actions/checkout@v3
+name: Build Kivy APK
 
-  # 4. Post Checkout Code - ví dụ liệt kê file, kiểm tra môi trường sau checkout
-  - name: Post Checkout Code - List files
-    if: always()
-    run: ls -la
+on:
+  push:
+    branches:
+      - main
 
-  # 2. Setup Python (ví dụ)
-  - name: Set up Python
-    uses: actions/setup-python@v4
-    with:
-      python-version: '3.12'
+jobs:
+  build_apk:
+    runs-on: ubuntu-24.04
 
-  # 3. Post Setup Python - ví dụ kiểm tra python version ngay sau setup
-  - name: Post Setup - Check Python version
-    if: always()
-    run: python --version
-
-  # 5. Build APK
-  - name: Build APK
     env:
-      PATH: ${{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest/bin:${{ env.ANDROID_SDK_ROOT }}/platform-tools:${{ env.ANDROID_SDK_ROOT }}/build-tools/33.0.2:$PATH
-    run: buildozer android debug
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
 
-  # 6. Upload APK Artifact
-  - name: Upload APK artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: android-apk
-      path: ./.buildozer/android/platform/build/dists/**/bin/*.apk
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Post Checkout Code - List files
+        run: ls -la
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Post Setup - Check Python version
+        run: python --version
+
+      # **Bắt buộc cài git trước buildozer**
+      - name: Install git
+        run: sudo apt update && sudo apt install -y git
+
+      - name: Check git version
+        run: git --version
+
+      - name: Build APK
+        env:
+          PATH: ${{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest/bin:${{ env.ANDROID_SDK_ROOT }}/platform-tools:${{ env.ANDROID_SDK_ROOT }}/build-tools/33.0.2:$PATH
+        run: buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ./.buildozer/android/platform/build/dists/**/bin/*.apk
