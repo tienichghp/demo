@@ -1,22 +1,25 @@
-name: Build APK with Buildozer
+name: Build Kivy APK
 
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   build_apk:
     runs-on: ubuntu-22.04
 
     env:
-      # Biến môi trường SDK/NDK chuẩn buildozer
-      ANDROIDSDK_ROOT: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
-      ANDROIDNDK_ROOT: ${{ github.workspace }}/.buildozer/android/platform/android-ndk
+      ANDROIDSDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
+      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:${{ env.PATH }}
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Cache pip packages
@@ -27,59 +30,53 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies
+      - name: Install system packages
         run: |
-          sudo apt-get update -y
+          sudo apt-get update
           sudo apt-get install -y \
-            openjdk-11-jdk \
-            git \
-            zip \
-            unzip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libc6-dev \
-            libncurses5 \
-            libstdc++6 \
-            libffi-dev \
-            libssl-dev \
-            liblzma-dev \
-            libbz2-dev \
-            libreadline-dev \
-            libsqlite3-dev \
-            python3-pip \
-            python3-setuptools \
-            build-essential
+            openjdk-11-jdk git zip unzip python3-pip \
+            libncurses6 libncurses-dev libffi-dev libssl-dev libsqlite3-dev build-essential \
+            liblzma-dev libbz2-dev libreadline-dev xz-utils tk-dev \
+            libxml2-dev libxmlsec1-dev libjpeg-dev zlib1g-dev \
+            autoconf automake libtool pkg-config curl
 
-      - name: Upgrade pip and install Buildozer & Cython
+      - name: Install Android SDK Command line tools
         run: |
-          python3 -m pip install --upgrade pip
-          pip install --upgrade buildozer cython
+          mkdir -p $ANDROIDSDK_ROOT/cmdline-tools
+          cd $ANDROIDSDK_ROOT/cmdline-tools
+          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip -q commandlinetools.zip
+          rm commandlinetools.zip
+          mv cmdline-tools latest
 
-      - name: Run tests (optional)
-        if: fileExists('tests') || fileExists('test')
+      - name: Set PATH env variable
+        run: echo "PATH=${ANDROIDSDK_ROOT}/cmdline-tools/latest/bin:${ANDROIDSDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install Android SDK packages
         run: |
-          echo "Run your tests here"
-          # Ví dụ chạy pytest nếu có
-          # pip install pytest
-          # pytest tests/
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-      - name: Initialize Buildozer (fetch SDK/NDK, dependencies)
-        run: buildozer android debug
+      - name: Upgrade pip and install buildozer & cython
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          pip install buildozer cython
+
+      - name: Clean previous builds (optional)
+        run: buildozer android clean || true
 
       - name: Build APK (debug)
-        run: buildozer android debug
+        run: buildozer android debug --verbose
 
       - name: Upload APK artifact
-  uses: actions/upload-artifact@v4
-  with:
-    name: apk-debug
-    path: bin/*.apk
-
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: bin/*.apk
