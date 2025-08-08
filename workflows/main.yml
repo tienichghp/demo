@@ -16,6 +16,9 @@ jobs:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
 
+   jobs:
+  build_apk:
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -66,3 +69,4 @@ jobs:
         with:
           name: android-apk
           path: bin/*.apk
+
