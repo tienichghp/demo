@@ -11,66 +11,74 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
+      # Biến môi trường SDK/NDK chuẩn buildozer
       ANDROIDSDK_ROOT: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
       ANDROIDNDK_ROOT: ${{ github.workspace }}/.buildozer/android/platform/android-ndk
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v3
 
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Setup Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y \
-          openjdk-11-jdk \
-          git \
-          zip \
-          unzip \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          zlib1g-dev \
-          libc6-dev \
-          libncurses5 \
-          libstdc++6 \
-          libffi-dev \
-          libssl-dev \
-          liblzma-dev \
-          libbz2-dev \
-          libreadline-dev \
-          libsqlite3-dev \
-          python3-pip \
-          python3-setuptools \
-          build-essential \
-          libffi-dev
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            openjdk-11-jdk \
+            git \
+            zip \
+            unzip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libc6-dev \
+            libncurses5 \
+            libstdc++6 \
+            libffi-dev \
+            libssl-dev \
+            liblzma-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            python3-pip \
+            python3-setuptools \
+            build-essential
 
-    - name: Upgrade pip and install Buildozer & Cython
-      run: |
-        python3 -m pip install --upgrade pip
-        pip install --upgrade buildozer cython
+      - name: Upgrade pip and install Buildozer & Cython
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install --upgrade buildozer cython
 
-    - name: Initialize Buildozer (fetch dependencies, sdk, ndk)
-      run: buildozer android debug
+      - name: Run tests (optional)
+        if: fileExists('tests') || fileExists('test')
+        run: |
+          echo "Run your tests here"
+          # Ví dụ chạy pytest nếu có
+          # pip install pytest
+          # pytest tests/
 
-    - name: Build APK debug
-      run: buildozer android debug
+      - name: Initialize Buildozer (fetch SDK/NDK, dependencies)
+        run: buildozer android debug
 
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: apk-debug
-        path: bin/*.apk
+      - name: Build APK (debug)
+        run: buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-debug
+          path: bin/*.apk
