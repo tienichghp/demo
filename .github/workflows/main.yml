@@ -44,7 +44,7 @@ jobs:
           rm commandlinetools.zip
           mv cmdline-tools latest
 
-      - name: Set PATH env variable
+      - name: Set PATH env variable for sdkmanager and aidl
         run: |
           echo "PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/build-tools/33.0.2:$PATH" >> $GITHUB_ENV
 
@@ -56,12 +56,17 @@ jobs:
           sdkmanager --update
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
+      - name: List Android SDK build-tools folder
+        run: ls -l $ANDROID_SDK_ROOT/build-tools/
+
       - name: Upgrade pip and install buildozer and dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           pip install cython buildozer
 
       - name: Build APK
+        env:
+          PATH: ${{ env.ANDROID_SDK_ROOT }}/cmdline-tools/latest/bin:${{ env.ANDROID_SDK_ROOT }}/platform-tools:${{ env.ANDROID_SDK_ROOT }}/build-tools/33.0.2:$PATH
         run: buildozer android debug
 
       - name: Upload APK artifact
