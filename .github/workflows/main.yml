@@ -45,13 +45,15 @@ jobs:
           mv cmdline-tools latest
 
       - name: Set PATH env variable
-        run: echo "PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:$PATH" >> $GITHUB_ENV
+        run: |
+          echo "PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/build-tools/33.0.2:$PATH" >> $GITHUB_ENV
 
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses
 
-      - name: Install Android SDK packages
+      - name: Update SDK manager and install Android SDK packages
         run: |
+          sdkmanager --update
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
       - name: Upgrade pip and install buildozer and dependencies
